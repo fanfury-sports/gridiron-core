@@ -31,7 +31,7 @@ incremental = false
 overflow-checks = true
 strip = true
 
-[patch.'https://github.com/gridiron-fi/gridiron-core']
+[patch.'https://github.com/fanfury-sports/gridiron-core']
 gridiron = { path = "packages/gridiron" }
 
 [patch.crates-io]

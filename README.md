@@ -1,6 +1,6 @@
 # Gridiron Core
 
-[![codecov](https://codecov.io/gh/gridiron-fi/gridiron-core/branch/main/graph/badge.svg?token=ROOLZTGZMM)](https://codecov.io/gh/gridiron-fi/gridiron-core)
+[![codecov](https://codecov.io/gh/fanfury-sports/gridiron-core/branch/main/graph/badge.svg?token=ROOLZTGZMM)](https://codecov.io/gh/fanfury-sports/gridiron-core)
 
 Multi pool type automated market-maker (AMM) protocol powered by smart contracts on the [Terra](https://terra.money) blockchain.
 
