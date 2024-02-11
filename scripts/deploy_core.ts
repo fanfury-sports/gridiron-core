@@ -41,14 +41,14 @@ async function main() {
 async function uploadAndInitToken(furya, wallet) {
     let network = readArtifact(furya.config.chainID);
     if (!network.tokenCodeID) {
-        network.tokenCodeID = await uploadContract(furya, wallet, join(ARTIFACTS_PATH, 'astroport_token.wasm')!);
+        network.tokenCodeID = await uploadContract(furya, wallet, join(ARTIFACTS_PATH, 'gridiron_token.wasm')!);
         writeArtifact(network, furya.config.chainID);
     }
     if (!network.tokenAddress) {
         const tokenInitMsg = {
             // Define initialization message for token contract
-            symbol: 'ASTRO', // Example: Define token symbol
-            name: 'AstroToken', // Example: Define token name
+            symbol: 'GRID', // Example: Define token symbol
+            name: 'GridToken', // Example: Define token name
             decimals: 18, // Example: Define token decimals
             initial_balances: [ // Example: Define initial balances for token holders
                 {
@@ -73,7 +73,7 @@ async function uploadAndInitToken(furya, wallet) {
             furya,
             wallet,
             chainConfigs.token.admin || chainConfigs.generalInfo.multisig,
-            join(ARTIFACTS_PATH, 'astroport_token.wasm'),
+            join(ARTIFACTS_PATH, 'gridiron_token.wasm'),
             tokenInitMsg,
             'Token Label'
         );
@@ -86,12 +86,12 @@ async function uploadPairContracts(furya, wallet) {
     let network = readArtifact(furya.config.chainID);
     if (!network.pairCodeID) {
         console.log('Register Pair Contract...');
-        network.pairCodeID = await uploadContract(furya, wallet, join(ARTIFACTS_PATH, 'astroport_pair.wasm')!);
+        network.pairCodeID = await uploadContract(furya, wallet, join(ARTIFACTS_PATH, 'gridiron_pair.wasm')!);
         writeArtifact(network, furya.config.chainID);
     }
     if (!network.pairStableCodeID) {
         console.log('Register Stable Pair Contract...');
-        network.pairStableCodeID = await uploadContract(furya, wallet, join(ARTIFACTS_PATH, 'astroport_pair_stable.wasm')!);
+        network.pairStableCodeID = await uploadContract(furya, wallet, join(ARTIFACTS_PATH, 'gridiron_pair_stable.wasm')!);
         writeArtifact(network, furya.config.chainID);
     }
 }
@@ -102,7 +102,7 @@ async function uploadAndInitStaking(furya, wallet) {
         const stakingInitMsg = {
             // Define initialization message for staking contract
             deposit_token_addr: network.tokenAddress, // Example: Define deposit token address
-            token_code_id: network.xastroTokenCodeID, // Example: Define staked token code ID
+            token_code_id: network.xgridTokenCodeID, // Example: Define staked token code ID
             admin: chainConfigs.staking.admin || chainConfigs.generalInfo.multisig, // Example: Define admin address
             owner: chainConfigs.staking.initMsg.owner || chainConfigs.generalInfo.multisig, // Example: Define owner address
             marketing: chainConfigs.staking.initMsg.marketing.marketing || chainConfigs.generalInfo.multisig // Example: Define marketing address
@@ -112,12 +112,12 @@ async function uploadAndInitStaking(furya, wallet) {
             furya,
             wallet,
             chainConfigs.staking.admin || chainConfigs.generalInfo.multisig,
-            join(ARTIFACTS_PATH, 'astroport_staking.wasm'),
+            join(ARTIFACTS_PATH, 'gridiron_staking.wasm'),
             stakingInitMsg,
             'Staking Label'
         );
         network.stakingAddress = resp.shift().shift();
-        network.xastroAddress = resp.shift().shift(); // Assuming xastroAddress is returned in the response
+        network.xgridAddress = resp.shift().shift(); // Assuming xgridAddress is returned in the response
         writeArtifact(network, furya.config.chainID);
     }
 }
@@ -138,7 +138,7 @@ async function uploadAndInitFactory(furya, wallet) {
             furya,
             wallet,
             chainConfigs.factory.admin || chainConfigs.generalInfo.multisig,
-            join(ARTIFACTS_PATH, 'astroport_factory.wasm'),
+            join(ARTIFACTS_PATH, 'gridiron_factory.wasm'),
             factoryInitMsg,
             'Factory Label'
         );
@@ -156,7 +156,7 @@ async function uploadAndInitRouter(furya, wallet) {
     if (!network.routerAddress) {
         const routerInitMsg = {
             // Define initialization message for router contract
-            astroport_factory: network.factoryAddress, // Example: Define factory contract address
+            gridiron_factory: network.factoryAddress, // Example: Define factory contract address
             whitelist_code_id: network.whitelistCodeID, // Example: Define whitelist code ID
             admin: chainConfigs.router.admin || chainConfigs.generalInfo.multisig // Example: Define admin address
         };
@@ -165,7 +165,7 @@ async function uploadAndInitRouter(furya, wallet) {
             furya,
             wallet,
             chainConfigs.router.admin || chainConfigs.generalInfo.multisig,
-            join(ARTIFACTS_PATH, 'astroport_router.wasm'),
+            join(ARTIFACTS_PATH, 'gridiron_router.wasm'),
             routerInitMsg,
             'Router Label'
         );
@@ -182,7 +182,7 @@ async function uploadAndInitMaker(furya, wallet) {
             owner: chainConfigs.maker.initMsg.owner || chainConfigs.generalInfo.multisig, // Example: Define owner address
             factory_contract: network.factoryAddress, // Example: Define factory contract address
             staking_contract: network.stakingAddress, // Example: Define staking contract address
-            astro_token: { token: { contract_addr: network.tokenAddress } }, // Example: Define astro token contract address
+            grid_token: { token: { contract_addr: network.tokenAddress } }, // Example: Define grid token contract address
             admin: chainConfigs.maker.admin || chainConfigs.generalInfo.multisig // Example: Define admin address
         };
         console.log('Deploying Maker...');
@@ -190,7 +190,7 @@ async function uploadAndInitMaker(furya, wallet) {
             furya,
             wallet,
             chainConfigs.maker.admin || chainConfigs.generalInfo.multisig,
-            join(ARTIFACTS_PATH, 'astroport_maker.wasm'),
+            join(ARTIFACTS_PATH, 'gridiron_maker.wasm'),
             makerInitMsg,
             'Maker Label'
         );
@@ -211,7 +211,7 @@ async function uploadAndInitTreasury(furya, wallet) {
             furya,
             wallet,
             chainConfigs.treasury.admin || chainConfigs.generalInfo.multisig,
-            join(ARTIFACTS_PATH, 'astroport_treasury.wasm'),
+            join(ARTIFACTS_PATH, 'gridiron_treasury.wasm'),
             treasuryInitMsg,
             'Treasury Label'
         );
@@ -234,7 +234,7 @@ async function uploadAndInitVesting(furya, wallet) {
             furya,
             wallet,
             chainConfigs.vesting.admin || chainConfigs.generalInfo.multisig,
-            join(ARTIFACTS_PATH, 'astroport_vesting.wasm'),
+            join(ARTIFACTS_PATH, 'gridiron_vesting.wasm'),
             vestingInitMsg,
             'Vesting Label'
         );
@@ -248,7 +248,7 @@ async function uploadAndInitGenerator(furya, wallet) {
     if (!network.generatorAddress) {
         const generatorInitMsg = {
             // Define initialization message for generator contract
-            astro_token: { token: { contract_addr: network.tokenAddress } }, // Example: Define astro token contract address
+            grid_token: { token: { contract_addr: network.tokenAddress } }, // Example: Define grid token contract address
             vesting_contract: network.vestingAddress, // Example: Define vesting contract address
             factory: network.factoryAddress, // Example: Define factory contract address
             whitelist_code_id: network.whitelistCodeID, // Example: Define whitelist code ID
@@ -260,7 +260,7 @@ async function uploadAndInitGenerator(furya, wallet) {
             furya,
             wallet,
             chainConfigs.generator.admin || chainConfigs.generalInfo.multisig,
-            join(ARTIFACTS_PATH, 'astroport_generator.wasm'),
+            join(ARTIFACTS_PATH, 'gridiron_generator.wasm'),
             generatorInitMsg,
             'Generator Label'
         );

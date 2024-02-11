@@ -1,8 +1,8 @@
 use cosmwasm_std::{ensure, Api, Decimal, Deps, QuerierWrapper, StdResult, Uint128};
 use itertools::Itertools;
 
-use astroport::asset::{Asset, AssetInfo, AssetInfoExt};
-use astroport::querier::query_supply;
+use gridiron::asset::{Asset, AssetInfo, AssetInfoExt};
+use gridiron::querier::query_supply;
 
 use crate::error::ContractError;
 use crate::state::{Config, CONFIG};

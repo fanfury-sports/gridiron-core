@@ -2,7 +2,7 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::Addr;
 use cw_storage_plus::Item;
 
-use astroport::asset::PairInfo;
+use gridiron::asset::PairInfo;
 
 /// This structure stores the main pair parameters.
 #[cw_serde]

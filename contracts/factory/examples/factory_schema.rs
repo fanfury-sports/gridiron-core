@@ -1,4 +1,4 @@
-use astroport::factory::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use gridiron::factory::{ExecuteMsg, InstantiateMsg, QueryMsg};
 use cosmwasm_schema::write_api;
 
 fn main() {

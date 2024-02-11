@@ -1,4 +1,4 @@
-use astroport::asset::MINIMUM_LIQUIDITY_AMOUNT;
+use gridiron::asset::MINIMUM_LIQUIDITY_AMOUNT;
 use cosmwasm_std::{OverflowError, StdError};
 use thiserror::Error;
 

@@ -13,27 +13,27 @@ use cosmwasm_std::{
 use cw2::set_contract_version;
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
 
-use astroport::asset::{
+use gridiron::asset::{
     addr_opt_validate, check_swap_parameters, format_lp_token_name, Asset, AssetInfo, CoinsExt,
     PairInfo, MINIMUM_LIQUIDITY_AMOUNT,
 };
-use astroport::factory::PairType;
-use astroport::generator::Cw20HookMsg as GeneratorHookMsg;
-use astroport::pair::{ConfigResponse, DEFAULT_SLIPPAGE, MAX_ALLOWED_SLIPPAGE};
-use astroport::pair::{
+use gridiron::factory::PairType;
+use gridiron::generator::Cw20HookMsg as GeneratorHookMsg;
+use gridiron::pair::{ConfigResponse, DEFAULT_SLIPPAGE, MAX_ALLOWED_SLIPPAGE};
+use gridiron::pair::{
     CumulativePricesResponse, Cw20HookMsg, ExecuteMsg, InstantiateMsg, PoolResponse, QueryMsg,
     ReverseSimulationResponse, SimulationResponse, TWAP_PRECISION,
 };
-use astroport::querier::{query_factory_config, query_fee_info, query_supply};
-use astroport::{token::InstantiateMsg as TokenInstantiateMsg, U256};
+use gridiron::querier::{query_factory_config, query_fee_info, query_supply};
+use gridiron::{token::InstantiateMsg as TokenInstantiateMsg, U256};
 use cw_utils::parse_instantiate_response_data;
 
 use crate::error::ContractError;
 use crate::state::{Config, BALANCES, CONFIG};
-use astroport::pair_xyk_sale_tax::{
+use gridiron::pair_xyk_sale_tax::{
     MigrateMsg, SaleTaxConfigUpdates, SaleTaxInitParams, TaxConfigChecked,
 };
-use astroport_pair::state::{Config as XykConfig, CONFIG as XYK_CONFIG};
+use gridiron_pair::state::{Config as XykConfig, CONFIG as XYK_CONFIG};
 
 /// Contract name that is used for migration.
 const CONTRACT_NAME: &str = env!("CARGO_PKG_NAME");
@@ -107,7 +107,7 @@ pub fn instantiate(
             })?,
             funds: vec![],
             admin: None,
-            label: String::from("Astroport LP token"),
+            label: String::from("Gridiron LP token"),
         }
         .into(),
         id: INSTANTIATE_TOKEN_REPLY_ID,
@@ -1345,11 +1345,11 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
     let contract_version = cw2::get_contract_version(deps.storage)?;
 
     // If migrating from default xyk pair, we must make some state changes
-    if contract_version.contract == "astroport-pair" {
+    if contract_version.contract == "gridiron-pair" {
         match contract_version.version.as_str() {
             "1.3.0" | "1.3.1" | "1.4.0" | "1.5.0" => {}
             _ => return Err(StdError::generic_err(
-                "Incompatible version of astroport-pair. Only 1.3.0, 1.3.1, 1.4.0, and 1.5.0 supported.",
+                "Incompatible version of gridiron-pair. Only 1.3.0, 1.3.1, 1.4.0, and 1.5.0 supported.",
             )
             .into()),
         }
@@ -1373,7 +1373,7 @@ pub fn migrate(deps: DepsMut, _env: Env, msg: MigrateMsg) -> Result<Response, Co
         CONFIG.save(deps.storage, &new_config)?;
     } else {
         return Err(StdError::generic_err(
-            "Incompatible contract name. Only astroport-pair supported.",
+            "Incompatible contract name. Only gridiron-pair supported.",
         )
         .into());
     }
@@ -1404,7 +1404,7 @@ pub fn pool_info(querier: QuerierWrapper, config: &Config) -> StdResult<(Vec<Ass
 
 #[cfg(test)]
 mod tests {
-    use astroport::{
+    use gridiron::{
         asset::{Asset, AssetInfo},
         pair_xyk_sale_tax::TaxConfig,
     };

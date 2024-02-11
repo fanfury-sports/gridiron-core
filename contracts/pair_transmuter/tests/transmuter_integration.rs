@@ -1,12 +1,12 @@
 use cosmwasm_std::{Addr, StdError};
 use cw_multi_test::Executor;
 
-use astroport::asset::{Asset, AssetInfo, AssetInfoExt};
-use astroport::pair::{
+use gridiron::asset::{Asset, AssetInfo, AssetInfoExt};
+use gridiron::pair::{
     ConfigResponse, CumulativePricesResponse, ExecuteMsg, QueryMsg, ReverseSimulationResponse,
     SimulationResponse,
 };
-use astroport_pair_transmuter::error::ContractError;
+use gridiron_pair_transmuter::error::ContractError;
 
 use crate::helper::{Helper, TestCoin};
 
@@ -55,9 +55,9 @@ fn test_instantiate() {
     )
     .unwrap_err();
     assert_eq!(
-        err.downcast::<astroport_factory::error::ContractError>()
+        err.downcast::<gridiron_factory::error::ContractError>()
             .unwrap(),
-        astroport_factory::error::ContractError::DoublingAssets {}
+        gridiron_factory::error::ContractError::DoublingAssets {}
     );
 
     Helper::new(
@@ -604,7 +604,7 @@ fn test_drain_pool() {
     let user = Addr::unchecked("user");
 
     // Try to drain all test_coins[0]
-    let wrong_asset_info = AssetInfo::cw20_unchecked("astro");
+    let wrong_asset_info = AssetInfo::cw20_unchecked("grid");
     let swap_asset = wrong_asset_info.with_balance(100_000_000000u128);
     let err = helper
         .app

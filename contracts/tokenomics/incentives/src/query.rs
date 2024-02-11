@@ -6,8 +6,8 @@ use cosmwasm_std::{
 use cw_storage_plus::Bound;
 use itertools::Itertools;
 
-use astroport::asset::{determine_asset_info, Asset, AssetInfo, AssetInfoExt};
-use astroport::incentives::{QueryMsg, RewardType, ScheduleResponse, MAX_PAGE_LIMIT};
+use gridiron::asset::{determine_asset_info, Asset, AssetInfo, AssetInfoExt};
+use gridiron::incentives::{QueryMsg, RewardType, ScheduleResponse, MAX_PAGE_LIMIT};
 
 use crate::error::ContractError;
 use crate::state::{

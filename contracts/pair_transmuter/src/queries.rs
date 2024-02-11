@@ -1,10 +1,10 @@
 use cosmwasm_std::{entry_point, to_json_binary, Binary, Deps, Env, StdResult, Uint128};
 
-use astroport::asset::{Asset, AssetInfo};
-use astroport::pair::{
+use gridiron::asset::{Asset, AssetInfo};
+use gridiron::pair::{
     ConfigResponse, PoolResponse, QueryMsg, ReverseSimulationResponse, SimulationResponse,
 };
-use astroport::querier::query_factory_config;
+use gridiron::querier::query_factory_config;
 
 use crate::error::ContractError;
 use crate::state::{Config, CONFIG};

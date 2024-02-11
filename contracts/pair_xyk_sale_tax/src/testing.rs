@@ -1,4 +1,4 @@
-use astroport::pair_xyk_sale_tax::{SaleTaxInitParams, TaxConfigChecked, TaxConfigsChecked};
+use gridiron::pair_xyk_sale_tax::{SaleTaxInitParams, TaxConfigChecked, TaxConfigsChecked};
 use cosmwasm_std::testing::{mock_env, mock_info, MOCK_CONTRACT_ADDR};
 use cosmwasm_std::{
     attr, to_json_binary, Addr, BankMsg, BlockInfo, Coin, CosmosMsg, Decimal, DepsMut, Env, Reply,
@@ -7,13 +7,13 @@ use cosmwasm_std::{
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg, MinterResponse};
 use proptest::prelude::*;
 
-use astroport::asset::{Asset, AssetInfo, PairInfo};
-use astroport::factory::PairType;
-use astroport::pair::{
+use gridiron::asset::{Asset, AssetInfo, PairInfo};
+use gridiron::factory::PairType;
+use gridiron::pair::{
     Cw20HookMsg, ExecuteMsg, InstantiateMsg, PoolResponse, ReverseSimulationResponse,
     SimulationResponse, TWAP_PRECISION,
 };
-use astroport::token::InstantiateMsg as TokenInstantiateMsg;
+use gridiron::token::InstantiateMsg as TokenInstantiateMsg;
 
 use crate::contract::reply;
 use crate::contract::{
@@ -104,7 +104,7 @@ fn proper_initialization() {
                 .unwrap(),
                 funds: vec![],
                 admin: None,
-                label: String::from("Astroport LP token"),
+                label: String::from("Gridiron LP token"),
             }
             .into(),
             id: 1,

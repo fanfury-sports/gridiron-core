@@ -1,4 +1,4 @@
-use astroport::{
+use gridiron::{
     asset::{AssetInfo, PairInfo},
     pair_xyk_sale_tax::TaxConfigs,
 };

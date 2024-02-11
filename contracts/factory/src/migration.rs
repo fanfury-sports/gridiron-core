@@ -2,7 +2,7 @@ use cosmwasm_schema::cw_serde;
 use cosmwasm_std::{StdResult, Storage};
 use cw_storage_plus::Map;
 
-use astroport::factory::{PairConfig, PairType};
+use gridiron::factory::{PairConfig, PairType};
 
 use crate::state::PAIR_CONFIGS;
 

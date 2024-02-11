@@ -1,9 +1,9 @@
 [package]
-name = "astroport-pair-xyk-sale-tax"
+name = "gridiron-pair-xyk-sale-tax"
 version = "1.6.0"
-authors = ["Astroport", "Sturdy"]
+authors = ["Gridiron", "Sturdy"]
 edition = "2021"
-description = "The Astroport constant product pool contract implementation"
+description = "The Gridiron constant product pool contract implementation"
 license = "MIT"
 
 exclude = [
@@ -25,7 +25,7 @@ library = []
 
 [dependencies]
 integer-sqrt = "0.1"
-astroport = { path = "../../packages/astroport", version = "3.9" }
+gridiron = { path = "../../packages/gridiron", version = "3.9" }
 cw2 = "0.15"
 cw20 = "0.15"
 cosmwasm-std = "1.1"
@@ -34,13 +34,13 @@ thiserror = { version = "1.0" }
 protobuf = { version = "2", features = ["with-bytes"] }
 cosmwasm-schema = "1.1"
 cw-utils = "1.0.1"
-astroport-pair = { path = "../pair", features = ["library"], version = "1.5" }
+gridiron-pair = { path = "../pair", features = ["library"], version = "1.5" }
 
 [dev-dependencies]
-astroport-token = { path = "../token" }
-astroport-factory = { path = "../factory" }
+gridiron-token = { path = "../token" }
+gridiron-factory = { path = "../factory" }
 proptest = "1.0"
 prost = "0.11.5"
-astroport-mocks = { path = "../../packages/astroport_mocks/" }
-astroport-pair-1_3_1 = { package = "astroport-pair", version = "1.3.1", features = ["library"] }
+gridiron-mocks = { path = "../../packages/gridiron_mocks/" }
+gridiron-pair-1_3_1 = { package = "gridiron-pair", version = "1.3.1", features = ["library"] }
 test-case = "3.3.1"

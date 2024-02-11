@@ -10,14 +10,14 @@ use cw2::{get_contract_version, set_contract_version};
 use cw_utils::parse_instantiate_response_data;
 use itertools::Itertools;
 
-use astroport::asset::{addr_opt_validate, AssetInfo, PairInfo};
-use astroport::common::{claim_ownership, drop_ownership_proposal, propose_new_owner};
-use astroport::factory::{
+use gridiron::asset::{addr_opt_validate, AssetInfo, PairInfo};
+use gridiron::common::{claim_ownership, drop_ownership_proposal, propose_new_owner};
+use gridiron::factory::{
     Config, ConfigResponse, ExecuteMsg, FeeInfoResponse, InstantiateMsg, PairConfig, PairType,
     PairsResponse, QueryMsg,
 };
-use astroport::generator::ExecuteMsg::DeactivatePool;
-use astroport::pair::InstantiateMsg as PairInstantiateMsg;
+use gridiron::generator::ExecuteMsg::DeactivatePool;
+use gridiron::pair::InstantiateMsg as PairInstantiateMsg;
 
 use crate::error::ContractError;
 use crate::migration::migrate_pair_configs;
@@ -28,7 +28,7 @@ use crate::state::{
 };
 
 /// Contract name that is used for migration.
-const CONTRACT_NAME: &str = "astroport-factory";
+const CONTRACT_NAME: &str = "gridiron-factory";
 /// Contract version that is used for migration.
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 /// A `reply` call code ID used in a sub-message.
@@ -316,7 +316,7 @@ pub fn execute_create_pair(
                 init_params,
             })?,
             funds: vec![],
-            label: "Astroport pair".to_string(),
+            label: "Gridiron pair".to_string(),
         }
         .into(),
         gas_limit: None,
@@ -410,14 +410,14 @@ pub fn deregister(
 /// ## Queries
 /// * **QueryMsg::Config {}** Returns general contract parameters using a custom [`ConfigResponse`] structure.
 ///
-/// * **QueryMsg::Pair { asset_infos }** Returns a [`PairInfo`] object with information about a specific Astroport pair.
+/// * **QueryMsg::Pair { asset_infos }** Returns a [`PairInfo`] object with information about a specific Gridiron pair.
 ///
 /// * **QueryMsg::Pairs { start_after, limit }** Returns an array that contains items of type [`PairInfo`].
-/// This returns information about multiple Astroport pairs
+/// This returns information about multiple Gridiron pairs
 ///
 /// * **QueryMsg::FeeInfo { pair_type }** Returns the fee structure (total and maker fees) for a specific pair type.
 ///
-/// * **QueryMsg::BlacklistedPairTypes {}** Returns a vector that contains blacklisted pair types (pair types that cannot get ASTRO emissions).
+/// * **QueryMsg::BlacklistedPairTypes {}** Returns a vector that contains blacklisted pair types (pair types that cannot get GRID emissions).
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
     match msg {
@@ -511,7 +511,7 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: Empty) -> Result<Response, Contra
     let contract_version = get_contract_version(deps.storage)?;
 
     match contract_version.contract.as_ref() {
-        "astroport-factory" => match contract_version.version.as_ref() {
+        "gridiron-factory" => match contract_version.version.as_ref() {
             // pisco-1, phoenix-1, injective-1, pion-1, neutron-1, pacific-1: 1.5.1
             // injective-888: 1.6.0
             // atlantic-2: 1.3.1

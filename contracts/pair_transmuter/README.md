@@ -1,4 +1,4 @@
-# Astroport Transmuter Pool
+# Gridiron Transmuter Pool
 
 ## Overview
 Implementation of a constant sum pool that supports swapping between tokens at a constant 1:1 ratio.

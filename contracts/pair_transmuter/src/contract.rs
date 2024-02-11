@@ -9,12 +9,12 @@ use cw20::Cw20ReceiveMsg;
 use cw_utils::parse_instantiate_response_data;
 use itertools::Itertools;
 
-use astroport::asset::{
+use gridiron::asset::{
     addr_opt_validate, format_lp_token_name, Asset, AssetInfo, CoinsExt, PairInfo,
 };
-use astroport::factory::PairType;
-use astroport::pair::{Cw20HookMsg, ExecuteMsg, InstantiateMsg};
-use astroport::token::MinterResponse;
+use gridiron::factory::PairType;
+use gridiron::pair::{Cw20HookMsg, ExecuteMsg, InstantiateMsg};
+use gridiron::token::MinterResponse;
 
 use crate::error::ContractError;
 use crate::state::{Config, CONFIG};
@@ -63,7 +63,7 @@ pub fn instantiate(
     let sub_msg = SubMsg::reply_on_success(
         wasm_instantiate(
             msg.token_code_id,
-            &astroport::token::InstantiateMsg {
+            &gridiron::token::InstantiateMsg {
                 name: token_name,
                 symbol: "uLP".to_string(),
                 decimals: 6,
@@ -75,7 +75,7 @@ pub fn instantiate(
                 marketing: None,
             },
             vec![],
-            String::from("Astroport LP token"),
+            String::from("Gridiron LP token"),
         )?,
         INSTANTIATE_TOKEN_REPLY_ID,
     );
