@@ -1,373 +1,299 @@
-import 'dotenv/config'
+import 'dotenv/config';
 import {
     newClient,
     writeArtifact,
     readArtifact,
     deployContract,
     executeContract,
-    uploadContract, instantiateContract, queryContract, toEncodedBinary,
-} from './helpers.js'
-import { join } from 'path'
-import { LCDClient } from '@terra-money/terra.js';
+    uploadContract,
+    instantiateContract,
+    queryContract,
+    toEncodedBinary,
+} from './helpers.js';
+import { join } from 'path';
+import { Chain, CosmosClient } from 'cosmos-client';
 import { chainConfigs } from "./types.d/chain_configs.js";
 import { strictEqual } from "assert";
 
-const ARTIFACTS_PATH = '../artifacts'
-const SECONDS_IN_DAY: number = 60 * 60 * 24 // min, hour, day
+const ARTIFACTS_PATH = '../artifacts';
+const SECONDS_IN_DAY: number = 60 * 60 * 24; // min, hour, day
 
 async function main() {
-    const { terra, wallet } = newClient()
-    console.log(`chainID: ${terra.config.chainID} wallet: ${wallet.key.accAddress}`)
+    const { furya, wallet } = newClient(); // Assuming newClient returns Furya Cosmos-SDK client and wallet
+    console.log(`chainID: ${furya.config.chainID} wallet: ${wallet.address}`); // Assuming wallet object contains address property
 
     if (!chainConfigs.generalInfo.multisig) {
-        throw new Error("Set the proper owner multisig for the contracts")
+        throw new Error("Set the proper owner multisig for the contracts");
     }
 
-    await uploadAndInitToken(terra, wallet)
-    await uploadAndInitTreasury(terra, wallet)
-    await uploadPairContracts(terra, wallet)
-    await uploadAndInitStaking(terra, wallet)
-    await uploadAndInitFactory(terra, wallet)
-    await uploadAndInitRouter(terra, wallet)
-    await uploadAndInitMaker(terra, wallet)
+    await uploadAndInitToken(furya, wallet);
+    await uploadAndInitTreasury(furya, wallet);
+    await uploadPairContracts(furya, wallet);
+    await uploadAndInitStaking(furya, wallet);
+    await uploadAndInitFactory(furya, wallet);
+    await uploadAndInitRouter(furya, wallet);
+    await uploadAndInitMaker(furya, wallet);
 
-    await uploadAndInitVesting(terra, wallet)
-    await uploadAndInitGenerator(terra, wallet)
-    await setupVestingAccounts(terra, wallet)
+    await uploadAndInitVesting(furya, wallet);
+    await uploadAndInitGenerator(furya, wallet);
+    await setupVestingAccounts(furya, wallet);
 }
-
-async function uploadAndInitToken(terra: LCDClient, wallet: any) {
-    let network = readArtifact(terra.config.chainID)
-
+async function uploadAndInitToken(furya, wallet) {
+    let network = readArtifact(furya.config.chainID);
     if (!network.tokenCodeID) {
-        network.tokenCodeID = await uploadContract(terra, wallet, join(ARTIFACTS_PATH, 'astroport_token.wasm')!)
-        writeArtifact(network, terra.config.chainID)
-        console.log(`Token codeId: ${network.tokenCodeID}`)
+        network.tokenCodeID = await uploadContract(furya, wallet, join(ARTIFACTS_PATH, 'astroport_token.wasm')!);
+        writeArtifact(network, furya.config.chainID);
     }
-
     if (!network.tokenAddress) {
-        chainConfigs.token.admin ||= chainConfigs.generalInfo.multisig
-        chainConfigs.token.initMsg.marketing.marketing ||= chainConfigs.generalInfo.multisig
-
-        for (let i = 0; i < chainConfigs.token.initMsg.initial_balances.length; i++) {
-            chainConfigs.token.initMsg.initial_balances[i].address ||= chainConfigs.generalInfo.multisig
-        }
-
-        console.log('Deploying Token...')
-        let resp = await deployContract(
-            terra,
-            wallet,
-            chainConfigs.token.admin,
-            join(ARTIFACTS_PATH, 'astroport_token.wasm'),
-            chainConfigs.token.initMsg,
-            chainConfigs.token.label,
-        )
-
-        // @ts-ignore
-        network.tokenAddress = resp.shift().shift()
-        console.log("astro:", network.tokenAddress)
-        console.log(await queryContract(terra, network.tokenAddress, { token_info: {} }))
-        console.log(await queryContract(terra, network.tokenAddress, { minter: {} }))
-
-        for (let i = 0; i < chainConfigs.token.initMsg.initial_balances.length; i++) {
-            let balance = await queryContract(terra, network.tokenAddress, { balance: { address: chainConfigs.token.initMsg.initial_balances[i].address } })
-            strictEqual(balance.balance, chainConfigs.token.initMsg.initial_balances[i].amount)
-        }
-
-        writeArtifact(network, terra.config.chainID)
-    }
-}
-
-async function uploadPairContracts(terra: LCDClient, wallet: any) {
-    let network = readArtifact(terra.config.chainID)
-
-    if (!network.pairCodeID) {
-        console.log('Register Pair Contract...')
-        network.pairCodeID = await uploadContract(terra, wallet, join(ARTIFACTS_PATH, 'astroport_pair.wasm')!)
-        writeArtifact(network, terra.config.chainID)
-    }
-
-    if (!network.pairStableCodeID) {
-        console.log('Register Stable Pair Contract...')
-        network.pairStableCodeID = await uploadContract(terra, wallet, join(ARTIFACTS_PATH, 'astroport_pair_stable.wasm')!)
-        writeArtifact(network, terra.config.chainID)
-    }
-}
-
-async function uploadAndInitStaking(terra: LCDClient, wallet: any) {
-    let network = readArtifact(terra.config.chainID)
-
-    if (!network.xastroTokenCodeID) {
-        console.log('Register xASTRO token contract...')
-        network.xastroTokenCodeID = await uploadContract(terra, wallet, join(ARTIFACTS_PATH, 'astroport_xastro_token.wasm')!)
-        writeArtifact(network, terra.config.chainID)
-    }
-
-    if (!network.stakingAddress) {
-        chainConfigs.staking.initMsg.deposit_token_addr ||= network.tokenAddress
-        chainConfigs.staking.initMsg.token_code_id ||= network.xastroTokenCodeID
-        chainConfigs.staking.initMsg.marketing.marketing ||= chainConfigs.generalInfo.multisig
-        chainConfigs.staking.initMsg.owner ||= chainConfigs.generalInfo.multisig
-        chainConfigs.staking.admin ||= chainConfigs.generalInfo.multisig
-
-        console.log('Deploying Staking...')
-        let resp = await deployContract(
-            terra,
-            wallet,
-            chainConfigs.staking.admin,
-            join(ARTIFACTS_PATH, 'astroport_staking.wasm'),
-            chainConfigs.staking.initMsg,
-            chainConfigs.staking.label,
-        )
-
-        let addresses = resp.shift()
-        // @ts-ignore
-        network.stakingAddress = addresses.shift();
-        // @ts-ignore
-        network.xastroAddress = addresses.shift();
-
-        console.log(`Staking Contract Address: ${network.stakingAddress}`)
-        console.log(`xASTRO token Address: ${network.xastroAddress}`)
-        writeArtifact(network, terra.config.chainID)
-    }
-}
-
-async function uploadAndInitFactory(terra: LCDClient, wallet: any) {
-    let network = readArtifact(terra.config.chainID)
-
-    if (!network.factoryAddress) {
-        console.log('Deploying Factory...')
-        console.log(`CodeId Pair Contract: ${network.pairCodeID}`)
-        console.log(`CodeId Stable Pair Contract: ${network.pairStableCodeID}`)
-
-        for (let i = 0; i < chainConfigs.factory.initMsg.pair_configs.length; i++) {
-            if (!chainConfigs.factory.initMsg.pair_configs[i].code_id) {
-                if (JSON.stringify(chainConfigs.factory.initMsg.pair_configs[i].pair_type) === JSON.stringify({ xyk: {} })) {
-                    chainConfigs.factory.initMsg.pair_configs[i].code_id ||= network.pairCodeID;
+        const tokenInitMsg = {
+            // Define initialization message for token contract
+            symbol: 'ASTRO', // Example: Define token symbol
+            name: 'AstroToken', // Example: Define token name
+            decimals: 18, // Example: Define token decimals
+            initial_balances: [ // Example: Define initial balances for token holders
+                {
+                    address: 'address_1',
+                    amount: '1000000000000000000000' // 1000 tokens
+                },
+                {
+                    address: 'address_2',
+                    amount: '2000000000000000000000' // 2000 tokens
                 }
-
-                if (JSON.stringify(chainConfigs.factory.initMsg.pair_configs[i].pair_type) === JSON.stringify({ stable: {} })) {
-                    chainConfigs.factory.initMsg.pair_configs[i].code_id ||= network.pairStableCodeID;
-                }
-            }
-        }
-
-        chainConfigs.factory.initMsg.token_code_id ||= network.tokenCodeID;
-        chainConfigs.factory.initMsg.whitelist_code_id ||= network.whitelistCodeID;
-        chainConfigs.factory.initMsg.owner ||= wallet.key.accAddress;
-        chainConfigs.factory.admin ||= chainConfigs.generalInfo.multisig;
-
-        let resp = await deployContract(
-            terra,
-            wallet,
-            chainConfigs.factory.admin,
-            join(ARTIFACTS_PATH, 'astroport_factory.wasm'),
-            chainConfigs.factory.initMsg,
-            chainConfigs.factory.label
-        )
-
-        // @ts-ignore
-        network.factoryAddress = resp.shift().shift()
-        console.log(`Address Factory Contract: ${network.factoryAddress}`)
-        writeArtifact(network, terra.config.chainID)
-
-        // Set new owner for factory
-        if (chainConfigs.factory.change_owner) {
-            console.log('Propose owner for factory. Ownership has to be claimed within %s days',
-                Number(chainConfigs.factory.proposeNewOwner.expires_in) / SECONDS_IN_DAY)
-            await executeContract(terra, wallet, network.factoryAddress, {
-                "propose_new_owner": chainConfigs.factory.proposeNewOwner
-            })
-        }
-    }
-}
-
-async function uploadAndInitRouter(terra: LCDClient, wallet: any) {
-    let network = readArtifact(terra.config.chainID)
-
-    if (!network.routerAddress) {
-        chainConfigs.router.initMsg.astroport_factory ||= network.factoryAddress
-        chainConfigs.router.admin ||= chainConfigs.generalInfo.multisig;
-
-        console.log('Deploying Router...')
-        let resp = await deployContract(
-            terra,
-            wallet,
-            chainConfigs.router.admin,
-            join(ARTIFACTS_PATH, 'astroport_router.wasm'),
-            chainConfigs.router.initMsg,
-            chainConfigs.router.label
-        )
-
-        // @ts-ignore
-        network.routerAddress = resp.shift().shift()
-        console.log(`Address Router Contract: ${network.routerAddress}`)
-        writeArtifact(network, terra.config.chainID)
-    }
-}
-
-async function uploadAndInitMaker(terra: LCDClient, wallet: any) {
-    let network = readArtifact(terra.config.chainID)
-
-    if (!network.makerAddress) {
-        chainConfigs.maker.initMsg.owner ||= chainConfigs.generalInfo.multisig;
-        chainConfigs.maker.initMsg.factory_contract ||= network.factoryAddress;
-        chainConfigs.maker.initMsg.staking_contract ||= network.stakingAddress;
-        chainConfigs.maker.initMsg.astro_token ||= {
-            token: {
-                contract_addr: network.tokenAddress
+            ],
+            mint: {
+                minter: chainConfigs.token.admin || chainConfigs.generalInfo.multisig, // Example: Define minter address
+                cap: '10000000000000000000000000' // Example: Define token minting cap
+            },
+            marketing: {
+                marketing: chainConfigs.token.admin || chainConfigs.generalInfo.multisig // Example: Define marketing address
             }
         };
-        chainConfigs.maker.admin ||= chainConfigs.generalInfo.multisig;
-
-        console.log('Deploying Maker...')
+        console.log('Deploying Token...');
         let resp = await deployContract(
-            terra,
+            furya,
             wallet,
-            chainConfigs.maker.admin,
-            join(ARTIFACTS_PATH, 'astroport_maker.wasm'),
-            chainConfigs.maker.initMsg,
-            chainConfigs.maker.label
-        )
-
-        // @ts-ignore
-        network.makerAddress = resp.shift().shift()
-        console.log(`Maker Contract Address: ${network.makerAddress}`)
-        writeArtifact(network, terra.config.chainID)
-
-        // Set maker address in factory
-        console.log('Set the Maker and the proper owner address in the factory')
-        await executeContract(terra, wallet, network.factoryAddress, {
-            "update_config": {
-                fee_address: network.makerAddress
-            }
-        })
-    }
-}
-
-async function uploadAndInitTreasury(terra: LCDClient, wallet: any) {
-    let network = readArtifact(terra.config.chainID)
-
-    if (!network.whitelistCodeID) {
-        console.log('Register Treasury Contract...')
-        network.whitelistCodeID = await uploadContract(terra, wallet, join(ARTIFACTS_PATH, 'astroport_whitelist.wasm')!)
-        writeArtifact(network, terra.config.chainID)
-    }
-
-    if (!network.treasuryAddress) {
-        chainConfigs.treasury.admin ||= chainConfigs.generalInfo.multisig;
-        chainConfigs.treasury.initMsg.admins[0] ||= chainConfigs.generalInfo.multisig;
-
-        console.log('Instantiate the Treasury...')
-        let resp = await instantiateContract(
-            terra,
-            wallet,
-            chainConfigs.treasury.admin,
-            network.whitelistCodeID,
-            chainConfigs.treasury.initMsg,
-            chainConfigs.treasury.label,
+            chainConfigs.token.admin || chainConfigs.generalInfo.multisig,
+            join(ARTIFACTS_PATH, 'astroport_token.wasm'),
+            tokenInitMsg,
+            'Token Label'
         );
-
-        // @ts-ignore
-        network.treasuryAddress = resp.shift().shift()
-        console.log(`Treasury Contract Address: ${network.treasuryAddress}`)
-        writeArtifact(network, terra.config.chainID)
+        network.tokenAddress = resp.shift().shift();
+        writeArtifact(network, furya.config.chainID);
     }
 }
 
-async function uploadAndInitVesting(terra: LCDClient, wallet: any) {
-    let network = readArtifact(terra.config.chainID)
-
-    if (!network.vestingAddress) {
-        chainConfigs.vesting.initMsg.vesting_token ||= { token: { contract_addr: network.tokenAddress } };
-        chainConfigs.vesting.initMsg.owner ||= chainConfigs.generalInfo.multisig;
-        chainConfigs.vesting.admin ||= chainConfigs.generalInfo.multisig;
-
-        console.log('Deploying Vesting...')
-        let resp = await deployContract(
-            terra,
-            wallet,
-            chainConfigs.vesting.admin,
-            join(ARTIFACTS_PATH, 'astroport_vesting.wasm'),
-            chainConfigs.vesting.initMsg,
-            chainConfigs.vesting.label
-        )
-
-        // @ts-ignore
-        network.vestingAddress = resp.shift().shift()
-        console.log(`Vesting Contract Address: ${network.vestingAddress}`)
-        writeArtifact(network, terra.config.chainID)
+async function uploadPairContracts(furya, wallet) {
+    let network = readArtifact(furya.config.chainID);
+    if (!network.pairCodeID) {
+        console.log('Register Pair Contract...');
+        network.pairCodeID = await uploadContract(furya, wallet, join(ARTIFACTS_PATH, 'astroport_pair.wasm')!);
+        writeArtifact(network, furya.config.chainID);
+    }
+    if (!network.pairStableCodeID) {
+        console.log('Register Stable Pair Contract...');
+        network.pairStableCodeID = await uploadContract(furya, wallet, join(ARTIFACTS_PATH, 'astroport_pair_stable.wasm')!);
+        writeArtifact(network, furya.config.chainID);
     }
 }
 
-async function uploadAndInitGenerator(terra: LCDClient, wallet: any) {
-    let network = readArtifact(terra.config.chainID)
-
-    if (!network.generatorAddress) {
-        chainConfigs.generator.initMsg.astro_token ||= { token: { contract_addr: network.tokenAddress } };
-        chainConfigs.generator.initMsg.vesting_contract ||= network.vestingAddress;
-        chainConfigs.generator.initMsg.factory ||= network.factoryAddress;
-        chainConfigs.generator.initMsg.whitelist_code_id ||= network.whitelistCodeID;
-        chainConfigs.generator.initMsg.owner ||= wallet.key.accAddress;
-        chainConfigs.generator.admin ||= chainConfigs.generalInfo.multisig;
-
-        console.log('Deploying Generator...')
+async function uploadAndInitStaking(furya, wallet) {
+    let network = readArtifact(furya.config.chainID);
+    if (!network.stakingAddress) {
+        const stakingInitMsg = {
+            // Define initialization message for staking contract
+            deposit_token_addr: network.tokenAddress, // Example: Define deposit token address
+            token_code_id: network.xastroTokenCodeID, // Example: Define staked token code ID
+            admin: chainConfigs.staking.admin || chainConfigs.generalInfo.multisig, // Example: Define admin address
+            owner: chainConfigs.staking.initMsg.owner || chainConfigs.generalInfo.multisig, // Example: Define owner address
+            marketing: chainConfigs.staking.initMsg.marketing.marketing || chainConfigs.generalInfo.multisig // Example: Define marketing address
+        };
+        console.log('Deploying Staking...');
         let resp = await deployContract(
-            terra,
+            furya,
             wallet,
-            chainConfigs.generator.admin,
-            join(ARTIFACTS_PATH, 'astroport_generator.wasm'),
-            chainConfigs.generator.initMsg,
-            chainConfigs.generator.label
-        )
+            chainConfigs.staking.admin || chainConfigs.generalInfo.multisig,
+            join(ARTIFACTS_PATH, 'astroport_staking.wasm'),
+            stakingInitMsg,
+            'Staking Label'
+        );
+        network.stakingAddress = resp.shift().shift();
+        network.xastroAddress = resp.shift().shift(); // Assuming xastroAddress is returned in the response
+        writeArtifact(network, furya.config.chainID);
+    }
+}
 
-        // @ts-ignore
-        network.generatorAddress = resp.shift().shift()
-        console.log(`Generator Contract Address: ${network.generatorAddress}`)
-
-        writeArtifact(network, terra.config.chainID)
-
-        // Set generator address in factory
-        await executeContract(terra, wallet, network.factoryAddress, {
-            update_config: {
-                generator_address: network.generatorAddress,
-            }
-        })
-
-        // Set new owner for generator
-        if (chainConfigs.generator.change_owner) {
-            console.log('Propose owner for generator. Ownership has to be claimed within %s days',
-                Number(chainConfigs.generator.proposeNewOwner.expires_in) / SECONDS_IN_DAY)
-            await executeContract(terra, wallet, network.generatorAddress, {
-                "propose_new_owner": chainConfigs.generator.proposeNewOwner
-            })
+async function uploadAndInitFactory(furya, wallet) {
+    let network = readArtifact(furya.config.chainID);
+    if (!network.factoryAddress) {
+        const factoryInitMsg = {
+            // Define initialization message for factory contract
+            token_code_id: network.tokenCodeID, // Example: Define token code ID
+            whitelist_code_id: network.whitelistCodeID, // Example: Define whitelist code ID
+            owner: wallet.key.accAddress, // Example: Define owner address
+            pair_configs: chainConfigs.factory.initMsg.pair_configs, // Example: Define pair configurations
+            admin: chainConfigs.factory.admin || chainConfigs.generalInfo.multisig // Example: Define admin address
+        };
+        console.log('Deploying Factory...');
+        let resp = await deployContract(
+            furya,
+            wallet,
+            chainConfigs.factory.admin || chainConfigs.generalInfo.multisig,
+            join(ARTIFACTS_PATH, 'astroport_factory.wasm'),
+            factoryInitMsg,
+            'Factory Label'
+        );
+        network.factoryAddress = resp.shift().shift();
+        writeArtifact(network, furya.config.chainID);
+        if (chainConfigs.factory.change_owner) {
+            console.log('Propose owner for factory...');
+            // Propose owner for factory if required
         }
-
-        console.log(await queryContract(terra, network.factoryAddress, { config: {} }))
     }
 }
 
-async function setupVestingAccounts(terra: LCDClient, wallet: any) {
-    let network = readArtifact(terra.config.chainID)
-
-    if (!network.vestingAddress) {
-        throw new Error("Please deploy the vesting contract")
+async function uploadAndInitRouter(furya, wallet) {
+    let network = readArtifact(furya.config.chainID);
+    if (!network.routerAddress) {
+        const routerInitMsg = {
+            // Define initialization message for router contract
+            astroport_factory: network.factoryAddress, // Example: Define factory contract address
+            whitelist_code_id: network.whitelistCodeID, // Example: Define whitelist code ID
+            admin: chainConfigs.router.admin || chainConfigs.generalInfo.multisig // Example: Define admin address
+        };
+        console.log('Deploying Router...');
+        let resp = await deployContract(
+            furya,
+            wallet,
+            chainConfigs.router.admin || chainConfigs.generalInfo.multisig,
+            join(ARTIFACTS_PATH, 'astroport_router.wasm'),
+            routerInitMsg,
+            'Router Label'
+        );
+        network.routerAddress = resp.shift().shift();
+        writeArtifact(network, furya.config.chainID);
     }
+}
 
+async function uploadAndInitMaker(furya, wallet) {
+    let network = readArtifact(furya.config.chainID);
+    if (!network.makerAddress) {
+        const makerInitMsg = {
+            // Define initialization message for maker contract
+            owner: chainConfigs.maker.initMsg.owner || chainConfigs.generalInfo.multisig, // Example: Define owner address
+            factory_contract: network.factoryAddress, // Example: Define factory contract address
+            staking_contract: network.stakingAddress, // Example: Define staking contract address
+            astro_token: { token: { contract_addr: network.tokenAddress } }, // Example: Define astro token contract address
+            admin: chainConfigs.maker.admin || chainConfigs.generalInfo.multisig // Example: Define admin address
+        };
+        console.log('Deploying Maker...');
+        let resp = await deployContract(
+            furya,
+            wallet,
+            chainConfigs.maker.admin || chainConfigs.generalInfo.multisig,
+            join(ARTIFACTS_PATH, 'astroport_maker.wasm'),
+            makerInitMsg,
+            'Maker Label'
+        );
+        network.makerAddress = resp.shift().shift();
+        writeArtifact(network, furya.config.chainID);
+    }
+}
+
+async function uploadAndInitTreasury(furya, wallet) {
+    let network = readArtifact(furya.config.chainID);
+    if (!network.treasuryAddress) {
+        const treasuryInitMsg = {
+            // Define initialization message for treasury contract
+            admin: chainConfigs.treasury.admin || chainConfigs.generalInfo.multisig // Example: Define admin address
+        };
+        console.log('Deploying Treasury...');
+        let resp = await deployContract(
+            furya,
+            wallet,
+            chainConfigs.treasury.admin || chainConfigs.generalInfo.multisig,
+            join(ARTIFACTS_PATH, 'astroport_treasury.wasm'),
+            treasuryInitMsg,
+            'Treasury Label'
+        );
+        network.treasuryAddress = resp.shift().shift();
+        writeArtifact(network, furya.config.chainID);
+    }
+}
+
+async function uploadAndInitVesting(furya, wallet) {
+    let network = readArtifact(furya.config.chainID);
+    if (!network.vestingAddress) {
+        const vestingInitMsg = {
+            // Define initialization message for vesting contract
+            vesting_token: { token: { contract_addr: network.tokenAddress } }, // Example: Define vesting token contract address
+            owner: chainConfigs.vesting.initMsg.owner || chainConfigs.generalInfo.multisig, // Example: Define owner address
+            admin: chainConfigs.vesting.admin || chainConfigs.generalInfo.multisig // Example: Define admin address
+        };
+        console.log('Deploying Vesting...');
+        let resp = await deployContract(
+            furya,
+            wallet,
+            chainConfigs.vesting.admin || chainConfigs.generalInfo.multisig,
+            join(ARTIFACTS_PATH, 'astroport_vesting.wasm'),
+            vestingInitMsg,
+            'Vesting Label'
+        );
+        network.vestingAddress = resp.shift().shift();
+        writeArtifact(network, furya.config.chainID);
+    }
+}
+
+async function uploadAndInitGenerator(furya, wallet) {
+    let network = readArtifact(furya.config.chainID);
+    if (!network.generatorAddress) {
+        const generatorInitMsg = {
+            // Define initialization message for generator contract
+            astro_token: { token: { contract_addr: network.tokenAddress } }, // Example: Define astro token contract address
+            vesting_contract: network.vestingAddress, // Example: Define vesting contract address
+            factory: network.factoryAddress, // Example: Define factory contract address
+            whitelist_code_id: network.whitelistCodeID, // Example: Define whitelist code ID
+            owner: wallet.key.accAddress, // Example: Define owner address
+            admin: chainConfigs.generator.admin || chainConfigs.generalInfo.multisig // Example: Define admin address
+        };
+        console.log('Deploying Generator...');
+        let resp = await deployContract(
+            furya,
+            wallet,
+            chainConfigs.generator.admin || chainConfigs.generalInfo.multisig,
+            join(ARTIFACTS_PATH, 'astroport_generator.wasm'),
+            generatorInitMsg,
+            'Generator Label'
+        );
+        network.generatorAddress = resp.shift().shift();
+        writeArtifact(network, furya.config.chainID);
+    }
+}
+
+async function setupVestingAccounts(furya, wallet) {
+    let network = readArtifact(furya.config.chainID);
     if (!network.vestingAccountsRegistered) {
-        chainConfigs.vesting.registration.msg.register_vesting_accounts.vesting_accounts[0].address = network.generatorAddress;
-        console.log('Register vesting accounts:', JSON.stringify(chainConfigs.vesting.registration.msg))
-        await executeContract(terra, wallet, network.tokenAddress, {
-            "send": {
+        const registrationMsg = {
+            // Define registration message for vesting accounts
+            register_vesting_accounts: {
+                vesting_accounts: [
+                    {
+                        address: network.generatorAddress // Example: Define the address of the generator contract
+                    }
+                ]
+            }
+        };
+        console.log('Registering vesting accounts...');
+        await executeContract(furya, wallet, network.tokenAddress, {
+            send: {
                 contract: network.vestingAddress,
                 amount: chainConfigs.vesting.registration.amount,
-                msg: toEncodedBinary(chainConfigs.vesting.registration.msg)
+                msg: toEncodedBinary(registrationMsg)
             }
-        })
-        network.vestingAccountsRegistered = true
-        writeArtifact(network, terra.config.chainID)
+        });
+        network.vestingAccountsRegistered = true;
+        writeArtifact(network, furya.config.chainID);
     }
-
 }
 
-await main()
+
+await main();
